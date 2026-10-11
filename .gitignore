@@ -1,0 +1,12 @@
+node_modules/
+.env
+certs/
+models/speech/
+.voice/
+homememory.json
+homemap.json
+claude-usage.json
+training.jsonl
+tunnel-url.txt
+redteam-out/
+.DS_Store

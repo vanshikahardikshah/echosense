@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="EchoSense console: live room map and alerts from every sensing phone.">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css">
+  <title>EchoSense console</title>
+</head>
+<body>
+<main class="app console">
+  <header class="bar">
+    <span class="brand">EchoSense console</span>
+    <span id="hub" class="live" data-on="false">Connecting</span>
+  </header>
+
+  <div id="banner" class="banner" role="alert" hidden>
+    <div><strong id="banner-title">Possible fall</strong><div id="banner-detail"></div></div>
+    <button id="banner-ok">I checked: they're OK</button>
+  </div>
+
+  <div class="status" data-status="ok">
+    <h1 id="c-headline">Waiting for sensors</h1>
+    <p id="c-subline">Open the phone page on each phone. They appear here as they connect.</p>
+  </div>
+
+  <section class="witness" aria-labelledby="w-title">
+    <div class="w-head">
+      <div>
+        <h2 id="w-title">Witness agents</h2>
+        <p id="w-status" class="w-status">Connecting to the agents</p>
+      </div>
+      <div class="w-tools">
+        <select id="w-scn" aria-label="Scenario to play"></select>
+        <button id="w-run" class="small-btn">Play scenario</button>
+        <button id="w-eval" class="small-btn">Evaluation</button>
+      </div>
+    </div>
+    <div id="w-channel" class="w-channel"></div>
+    <details class="w-more">
+      <summary>Demo tools</summary>
+      <div class="w-moretools">
+        <label>Hack a phone <select id="w-phone" aria-label="Phone to compromise"></select></label>
+        <button id="w-fake" class="small-btn">Make it fake a fall</button>
+        <label class="chk"><input type="checkbox" id="w-simcalls"> Scenarios make real calls</label>
+        <button id="w-testcall" class="small-btn">Test call</button>
+        <button id="w-testwebex" class="small-btn">Test Webex</button>
+        <button id="w-testask" class="small-btn">Test spoken check-in</button>
+        <label>Claude <select id="w-llm" aria-label="Claude mode">
+          <option value="agent">Claude negotiates when agents disagree</option>
+          <option value="off">Off (everything local)</option>
+        </select></label>
+      </div>
+      <ul id="w-loose" class="w-loose" aria-live="polite"></ul>
+    </details>
+    <details id="w-mapbox" class="w-mapbox">
+      <summary>Room map <span id="w-mapsum"></span></summary>
+      <p class="w-status">The Cartographer agent uses this to tell where a sound came from and where a person ended up. Sonar measures distance, not what things are, so you show it once: stand at a place, press save, and sway gently for 5 seconds. Every phone that can see you records your distance.</p>
+      <div class="w-mark">
+        <input id="w-pname" type="text" placeholder="Name, e.g. Sofa" maxlength="40" aria-label="Place name">
+        <select id="w-pkind" aria-label="What kind of place"></select>
+        <button id="w-psave" class="small-btn">I'm standing there: save</button>
+      </div>
+      <p id="w-presult" class="w-status" role="status"></p>
+      <ul id="w-places" class="w-places"></ul>
+      <h4>What each phone sits next to</h4>
+      <div id="w-plabels" class="w-plabels"></div>
+    </details>
+    <div class="w-train" role="group" aria-label="Training labels">
+      <span>Calibration label for the incident below:</span>
+      <select id="w-lab-type" aria-label="What happened">
+        <optgroup label="Real falls">
+          <option value="hard_fall">hard fall</option>
+          <option value="soft_fall">soft fall</option>
+          <option value="chair_slide">chair slide</option>
+          <option value="other_fall">other fall</option>
+        </optgroup>
+        <optgroup label="Not falls">
+          <option value="couch_flop">couch flop</option>
+          <option value="hard_sit">hard sit</option>
+          <option value="dropped_object">dropped object</option>
+          <option value="kneel">kneel</option>
+          <option value="bend_stay_low">bend, stay low</option>
+          <option value="movie_crash">movie crash</option>
+          <option value="phone_knocked">phone knocked</option>
+          <option value="other">other</option>
+        </optgroup>
+      </select>
+      <select id="w-lab-loc" aria-label="Where">
+        <option value="center">center</option>
+        <option value="near_phone_1">near Phone 1</option>
+        <option value="near_phone_2">near Phone 2</option>
+        <option value="near_phone_3">near Phone 3</option>
+        <option value="hallway">hallway / out of view</option>
+      </select>
+      <label class="chk"><input type="checkbox" id="w-lab-held"> held out</label>
+      <button id="w-lab-save" class="small-btn">Save label</button>
+      <span id="w-labres" role="status"></span>
+    </div>
+    <div id="w-incident" class="w-incident"></div>
+    <h3 id="w-histhead" class="w-histhead" hidden>Earlier incidents</h3>
+    <ol id="w-history" class="w-history"></ol>
+  </section>
+
+  <dialog id="w-evaldlg" class="w-dialog">
+    <div class="w-dhead"><h2>Agents against the baselines</h2><button id="w-evalclose" class="small-btn">Close</button></div>
+    <p id="w-evalnote" class="w-status"></p>
+    <div class="w-tablewrap"><table id="w-evaltable"></table></div>
+  </dialog>
+
+  <div class="layout">
+    <section>
+      <div class="map-wrap">
+        <canvas id="map" aria-label="Room map with each phone and the located person"></canvas>
+      </div>
+      <div class="map-tools">
+        <label>Room width <input id="room-w" type="number" min="2" max="12" step="0.5" value="5"> m</label>
+        <label>Depth <input id="room-d" type="number" min="2" max="12" step="0.5" value="4"> m</label>
+        <span id="map-hint">Drag a phone to where it sits in the room.</span>
+      </div>
+      <div id="nodes" class="nodes"></div>
+    </section>
+    <aside class="feed">
+      <div class="events-head"><h2>Alerts</h2><span id="feed-count"></span></div>
+      <ol id="feed" class="events"><li class="empty">No alerts yet.</li></ol>
+    </aside>
+  </div>
+</main>
+<script src="dist/console.js"></script>
+</body>
+</html>

@@ -1,0 +1,29 @@
+{
+  "name": "echosense",
+  "version": "1.0.0",
+  "description": "Camera-free room sensing with a phone's speaker and microphone: active sonar, breathing, sound events, falls, multi-phone localisation.",
+  "scripts": {
+    "start": "node dist/server.cjs --port 8080",
+    "start:https": "node dist/server.cjs --port 8443 --https",
+    "build": "node tools/build.mjs",
+    "test": "vitest run",
+    "typecheck": "tsc -p ."
+  },
+  "license": "UNLICENSED",
+  "devDependencies": {
+    "@fontsource/barlow": "^5.3.0",
+    "@fontsource/barlow-condensed": "^5.3.0",
+    "@types/node": "^26.6.4",
+    "@types/ws": "^8.18.2",
+    "esbuild": "^0.28.2",
+    "playwright-core": "^1.63.0",
+    "typescript": "^5.9.3",
+    "vitest": "^5.0.3",
+    "ws": "^8.22.0"
+  },
+  "private": true,
+  "dependencies": {
+    "@agntcy/slim-bindings": "3.0.0",
+    "sherpa-onnx-node": "^1.13.7"
+  }
+}

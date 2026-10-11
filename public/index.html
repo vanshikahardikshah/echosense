@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="EchoSense">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="theme-color" content="#eef0e8" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#111a2a" media="(prefers-color-scheme: dark)">
+  <meta name="description" content="Camera-free room sensing with your phone's speaker and microphone.">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icon-180.png">
+  <link rel="stylesheet" href="styles.css">
+  <title>EchoSense</title>
+</head>
+<body>
+<main class="app">
+
+  <!-- Onboarding -->
+  <section id="onboard" class="onboard">
+    <h1>EchoSense</h1>
+    <p class="lede">Your phone's speaker and microphone, working as a sonar. It notices movement, breathing and falls without a camera.</p>
+    <svg class="rings" viewBox="0 0 400 120" aria-hidden="true">
+      <g fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M150 112 a50 50 0 0 1 100 0" opacity=".9"/>
+        <path d="M110 112 a90 90 0 0 1 180 0" opacity=".6"/>
+        <path d="M70 112 a130 130 0 0 1 260 0" opacity=".35"/>
+        <path d="M30 112 a170 170 0 0 1 340 0" opacity=".18"/>
+      </g>
+      <rect x="186" y="100" width="28" height="12" rx="3" fill="currentColor"/>
+    </svg>
+    <ol>
+      <li>Lay the phone flat on a table, screen up, with nothing covering the bottom edge. Turn the volume all the way up and silent mode off.</li>
+      <li>Tap Start sensing and allow the microphone and motion access.</li>
+      <li>Keep the room still for about five seconds while it learns the echoes.</li>
+    </ol>
+    <button id="start" class="primary">Start sensing</button>
+    <button id="start-sim" class="secondary">Explore a simulated room</button>
+    <p id="start-error" class="error" role="alert" hidden></p>
+    <p class="fine">Sound is analysed on this phone and is never recorded or sent anywhere. The sonar uses tones above 18 kHz, which most adults cannot hear; some pets can.</p>
+  </section>
+
+  <!-- Live -->
+  <section id="live" hidden>
+    <header class="bar">
+      <span class="brand">EchoSense</span>
+      <span id="live-dot" class="live" data-on="false">Starting</span>
+      <span id="sim-badge" class="sim-badge" hidden>Simulated room</span>
+      <button id="open-settings" class="icon-btn" aria-label="Settings">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2.2"/><circle cx="10" cy="17" r="2.2"/></svg>
+      </button>
+    </header>
+
+    <div id="status" class="status" data-status="calibrating" aria-live="polite">
+      <h1 id="headline">Calibrating</h1>
+      <p id="subline">Learning the room. Keep still for a moment.</p>
+    </div>
+
+    <nav class="tabs" role="tablist">
+      <button role="tab" aria-selected="true" data-tab="room">Room</button>
+      <button role="tab" aria-selected="false" data-tab="signals">Signals</button>
+    </nav>
+
+    <div id="tab-room" role="tabpanel">
+      <figure class="echo">
+        <canvas id="echogram" aria-label="Echogram: distance from the phone over the last ten seconds"></canvas>
+        <figcaption><span>Distance from the phone, last 10 s</span><span>Darker: stronger motion</span></figcaption>
+      </figure>
+
+      <dl class="readouts">
+        <div><dt>Nearest motion</dt><dd id="r-range">–</dd></div>
+        <div><dt>Breathing</dt><dd id="r-breath">–</dd></div>
+        <div><dt>Sound</dt><dd id="r-sound">–</dd></div>
+      </dl>
+
+      <div class="breath" id="breath-box" hidden>
+        <p id="breath-label">Chest movement</p>
+        <canvas id="breath-trace" aria-hidden="true"></canvas>
+      </div>
+
+      <div class="events-head"><h2>Activity</h2><span id="events-count"></span></div>
+      <ol id="events" class="events"><li class="empty">Nothing yet. Events appear here as they happen.</li></ol>
+    </div>
+
+    <div id="tab-signals" role="tabpanel" hidden>
+      <div class="panel">
+        <h3>Range profile</h3>
+        <p>Echo strength by distance right now. The peak at zero is the speaker reaching the microphone directly.</p>
+        <canvas id="sig-profile"></canvas>
+      </div>
+      <div class="panel">
+        <h3>Range and speed</h3>
+        <p>Moving echoes by distance and speed, over the last 1.4 s. Approaching motion sits left of centre.</p>
+        <canvas id="sig-rd"></canvas>
+      </div>
+      <div class="panel">
+        <h3>Audible sound</h3>
+        <p>What the passive listener hears below 8 kHz. Only features like these are used; audio is never stored.</p>
+        <canvas id="sig-mel"></canvas>
+      </div>
+      <div class="panel">
+        <h3>Speaker response</h3>
+        <p>Measured across the sonar band during calibration and equalised automatically.</p>
+        <canvas id="sig-eq"></canvas>
+      </div>
+      <div class="panel">
+        <h3>Health</h3>
+        <dl id="metrics" class="metrics"></dl>
+      </div>
+    </div>
+  </section>
+
+  <!-- Check-in -->
+  <div id="checkin" class="checkin" role="alertdialog" aria-labelledby="ci-title" aria-describedby="ci-reason" hidden>
+    <div class="inner">
+      <h2 id="ci-title">Are you OK?</h2>
+      <p id="ci-reason">EchoSense sensed a sudden movement and an impact, then no movement.</p>
+      <p id="ci-count" class="count">Alerting your contacts in 30 s</p>
+      <button id="ci-ok" class="primary">I'm OK</button>
+      <button id="ci-help" class="help">Get help</button>
+    </div>
+  </div>
+
+  <!-- Settings -->
+  <div id="sheet-backdrop" class="sheet-backdrop" hidden></div>
+  <div id="sheet" class="sheet" role="dialog" aria-labelledby="sheet-title" hidden>
+    <div class="inner">
+      <h2 id="sheet-title">Settings</h2>
+      <div class="field">
+        <span class="label">How the phone is used</span>
+        <p class="hint">Room sensor: lying still on a table. Carried: in a pocket, detecting the wearer's falls from motion.</p>
+        <div class="seg" id="set-mode">
+          <button data-v="room" aria-pressed="true">Room sensor</button>
+          <button data-v="body" aria-pressed="false">Carried</button>
+        </div>
+      </div>
+      <div class="field">
+        <label for="set-zone">Personal space: <span id="set-zone-v">1.2 m</span></label>
+        <p class="hint">Alert when someone moves toward the phone and comes closer than this.</p>
+        <input id="set-zone" type="range" min="0.5" max="2.5" step="0.1" value="1.2">
+      </div>
+      <div class="field">
+        <label for="set-level">Sonar level: <span id="set-level-v">50%</span></label>
+        <p class="hint">Higher reaches further. Lower it if you hear a faint whine.</p>
+        <input id="set-level" type="range" min="0.1" max="1" step="0.05" value="0.5">
+      </div>
+      <div class="field">
+        <span class="label">Check-in wait before alerting contacts</span>
+        <div class="seg" id="set-timeout">
+          <button data-v="15" aria-pressed="false">15 s</button>
+          <button data-v="30" aria-pressed="true">30 s</button>
+          <button data-v="60" aria-pressed="false">60 s</button>
+        </div>
+      </div>
+      <div class="field">
+        <label for="set-hub">Console</label>
+        <p class="hint" id="hub-status">Not connected. When this page is opened from the EchoSense hub, it connects automatically.</p>
+        <div class="row"><input id="set-hub" type="text" inputmode="url" autocomplete="off" placeholder="wss://your-hub/ws"><button id="hub-connect" class="small-btn">Connect</button></div>
+      </div>
+      <div class="field">
+        <span class="label">Calibration</span>
+        <p class="hint" id="band-info">Sonar band 18.0 to 20.8 kHz</p>
+        <button id="recal" class="small-btn">Recalibrate now</button>
+      </div>
+      <div class="field" id="sim-field">
+        <label for="set-sim">Simulated scene</label>
+        <p class="hint">Plays a scripted scene through the real signal chain. Clearly marked as simulated.</p>
+        <div class="row"><select id="set-sim"></select><button id="sim-run" class="small-btn">Play</button></div>
+      </div>
+      <div class="field"><button id="sheet-close" class="primary">Done</button></div>
+    </div>
+  </div>
+</main>
+<script src="dist/app.js"></script>
+</body>
+</html>
